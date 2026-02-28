@@ -65,13 +65,12 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
     res.end();
   } catch (error) {
-    console.error("API generate error:", error);
     const message = error instanceof Error ? error.message : "Failed to generate response";
     if (res.headersSent) {
       res.end();
       return;
     }
-    res.status(500).json({ error: message, env: { hasKey: !!OPENAI_API_KEY, model: OPENAI_MODEL, baseUrl: OPENAI_BASE_URL } });
+    res.status(500).json({ error: message });
   }
 };
 
