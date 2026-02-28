@@ -1,9 +1,3 @@
-import {
-  createParser,
-  ParsedEvent,
-  ReconnectInterval,
-} from "eventsource-parser";
-
 export type ChatGPTAgent = "user" | "system";
 
 export interface ChatGPTMessage {
@@ -37,12 +31,12 @@ export async function OpenAIStream(payload: OpenAIStreamPayload, config: OpenAIC
   const res = await fetch(
     `https://${config.baseUrl}/v1/chat/completions`,
     {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${config.apiKey}`,
-    },
-    method: "POST",
-    body: JSON.stringify(payload),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${config.apiKey}`,
+      },
+      method: "POST",
+      body: JSON.stringify(payload),
     }
   );
 
@@ -65,42 +59,43 @@ export async function OpenAIStream(payload: OpenAIStreamPayload, config: OpenAIC
 
   const stream = new ReadableStream({
     async start(controller) {
-      // callback
-      function onParse(event: ParsedEvent | ReconnectInterval) {
-        if (event.type === "event") {
-          const data = event.data;
-          // https://beta.openai.com/docs/api-reference/completions/create#completions/create-stream
+      const reader = res.body!.getReader();
+      let buffer = "";
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) {
+          controller.close();
+          break;
+        }
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed || trimmed.startsWith(":")) continue;
+          if (!trimmed.startsWith("data: ")) continue;
+
+          const data = trimmed.slice(6);
           if (data === "[DONE]") {
             controller.close();
             return;
           }
+
           try {
             const json = JSON.parse(data);
             const text = json.choices[0].delta?.content || "";
             if (counter < 2 && (text.match(/\n/) || []).length) {
-              // this is a prefix character (i.e., "\n\n"), do nothing
               return;
             }
             const queue = encoder.encode(text);
             controller.enqueue(queue);
             counter++;
           } catch (e) {
-            // maybe parse error
             controller.error(e);
           }
-        }
-      }
-
-      // stream response (SSE) from OpenAI may be fragmented into multiple chunks
-      // this ensures we properly read chunks and invoke an event for each SSE event stream
-      const parser = createParser(onParse);
-      const reader = res.body!.getReader();
-
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        if (value) {
-          parser.feed(decoder.decode(value));
         }
       }
     },
