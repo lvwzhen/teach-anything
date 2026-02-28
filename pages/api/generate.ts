@@ -53,25 +53,25 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     const reader = stream.getReader();
 
     res.setHeader("Content-Type", "text/plain; charset=utf-8");
-    res.setHeader("Transfer-Encoding", "chunked");
     res.setHeader("Cache-Control", "no-cache, no-transform");
 
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
       if (value) {
-        res.write(Buffer.from(value));
+        res.write(value);
       }
     }
 
     res.end();
   } catch (error) {
+    console.error("API generate error:", error);
     const message = error instanceof Error ? error.message : "Failed to generate response";
     if (res.headersSent) {
       res.end();
       return;
     }
-    res.status(500).json({ error: message });
+    res.status(500).json({ error: message, env: { hasKey: !!OPENAI_API_KEY, model: OPENAI_MODEL, baseUrl: OPENAI_BASE_URL } });
   }
 };
 
