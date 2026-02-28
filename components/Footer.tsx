@@ -15,12 +15,12 @@ export default function Footer() {
         </a>
         {" + "}
         <a
-          href="https://vercel.com/"
+          href="https://workers.cloudflare.com/"
           target="_blank"
           rel="noreferrer"
           className="font-bold hover:underline transition underline-offset-2"
         >
-          Vercel
+          Cloudflare
         </a>
         {" + "}
         <a

@@ -23,21 +23,45 @@ export interface OpenAIStreamPayload {
   n: number;
 }
 
-export async function OpenAIStream(payload: OpenAIStreamPayload) {
+interface OpenAIConfig {
+  apiKey: string;
+  baseUrl: string;
+}
+
+export async function OpenAIStream(payload: OpenAIStreamPayload, config: OpenAIConfig) {
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
 
   let counter = 0;
 
-  const res = await fetch(`https://${process.env.OPENAI_BASE_URL ?? "api.openai.com"}/v1/chat/completions`, {
+  const res = await fetch(
+    `https://${config.baseUrl}/v1/chat/completions`,
+    {
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${process.env.OPENAI_API_KEY ?? ""}`,
+      Authorization: `Bearer ${config.apiKey}`,
     },
     method: "POST",
     body: JSON.stringify(payload),
-  });
-  
+    }
+  );
+
+  if (!res.ok) {
+    let errorMessage = `OpenAI request failed with status ${res.status}`;
+    try {
+      const errorBody = await res.text();
+      if (errorBody) {
+        errorMessage = `${errorMessage}: ${errorBody}`;
+      }
+    } catch {
+      // Ignore errors while reading the error response.
+    }
+    throw new Error(errorMessage);
+  }
+
+  if (!res.body) {
+    throw new Error("OpenAI response body is empty");
+  }
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -70,9 +94,14 @@ export async function OpenAIStream(payload: OpenAIStreamPayload) {
       // stream response (SSE) from OpenAI may be fragmented into multiple chunks
       // this ensures we properly read chunks and invoke an event for each SSE event stream
       const parser = createParser(onParse);
-      // https://web.dev/streams/#asynchronous-iteration
-      for await (const chunk of res.body as any) {
-        parser.feed(decoder.decode(chunk));
+      const reader = res.body!.getReader();
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        if (value) {
+          parser.feed(decoder.decode(value));
+        }
       }
     },
   });

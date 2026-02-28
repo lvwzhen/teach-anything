@@ -1,25 +1,40 @@
-import type { NextRequest } from "next/server";
+import type { NextApiRequest, NextApiResponse } from "next";
 import { OpenAIStream, OpenAIStreamPayload } from "../../utils/OpenAIStream";
 
-if (!process.env.OPENAI_API_KEY) {
-  throw new Error("Missing env var from OpenAI");
-}
+const handler = async (req: NextApiRequest, res: NextApiResponse) => {
+  if (req.method !== "POST") {
+    res.setHeader("Allow", "POST");
+    res.status(405).json({ error: "Method not allowed" });
+    return;
+  }
 
-export const config = {
-  runtime: "edge",
-};
+  const { OPENAI_API_KEY } = process.env;
+  const OPENAI_MODEL = process.env.OPENAI_MODEL ?? "gpt-3.5-turbo-0125";
+  const OPENAI_BASE_URL = process.env.OPENAI_BASE_URL ?? "api.openai.com";
 
-const handler = async (req: NextRequest): Promise<Response> => {
-  const { prompt } = (await req.json()) as {
-    prompt?: string;
-  };
+  if (!OPENAI_API_KEY) {
+    res.status(500).json({ error: "Missing required environment variable: OPENAI_API_KEY" });
+    return;
+  }
+
+  let body: unknown = req.body;
+  if (typeof req.body === "string") {
+    try {
+      body = JSON.parse(req.body);
+    } catch {
+      res.status(400).json({ error: "Invalid JSON body" });
+      return;
+    }
+  }
+  const { prompt } = (body ?? {}) as { prompt?: string };
 
   if (!prompt) {
-    return new Response("No prompt in the request", { status: 400 });
+    res.status(400).json({ error: "No prompt in the request" });
+    return;
   }
 
   const payload: OpenAIStreamPayload = {
-    model: `${process.env.OPENAI_MODEL ?? "gpt-3.5-turbo-0125"}`,
+    model: OPENAI_MODEL,
     messages: [{ role: "user", content: prompt }],
     temperature: 0.7,
     top_p: 1,
@@ -30,8 +45,34 @@ const handler = async (req: NextRequest): Promise<Response> => {
     n: 1,
   };
 
-  const stream = await OpenAIStream(payload);
-  return new Response(stream);
+  try {
+    const stream = await OpenAIStream(payload, {
+      apiKey: OPENAI_API_KEY,
+      baseUrl: OPENAI_BASE_URL,
+    });
+    const reader = stream.getReader();
+
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.setHeader("Transfer-Encoding", "chunked");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      if (value) {
+        res.write(Buffer.from(value));
+      }
+    }
+
+    res.end();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to generate response";
+    if (res.headersSent) {
+      res.end();
+      return;
+    }
+    res.status(500).json({ error: message });
+  }
 };
 
 export default handler;
