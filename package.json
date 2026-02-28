@@ -3,22 +3,22 @@
   "packageManager": "npm@10.9.2",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "build:cf": "opennextjs-cloudflare build",
     "preview:cf": "opennextjs-cloudflare preview",
     "deploy:cf": "opennextjs-cloudflare deploy"
   },
   "dependencies": {
-    "@headlessui/react": "^1.7.7",
-    "@headlessui/tailwindcss": "^0.1.2",
+    "@headlessui/react": "^2.2.9",
+    "@headlessui/tailwindcss": "^0.2.2",
     "@heroicons/react": "^2.0.13",
     "@tailwindcss/forms": "^0.5.3",
     "eventsource-parser": "^0.0.5",
     "framer-motion": "^8.4.3",
     "next": "16.1.6",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
     "react-hook-form": "^7.42.0",
     "react-hot-toast": "^2.4.0",
     "react-use-measure": "^2.1.1"

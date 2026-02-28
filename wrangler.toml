@@ -3,6 +3,10 @@ main = ".open-next/worker.js"
 compatibility_date = "2026-02-28"
 compatibility_flags = ["nodejs_compat"]
 
+[vars]
+OPENAI_MODEL="openrouter/free"
+OPENAI_BASE_URL="openrouter.ai/api"
+
 [assets]
 directory = ".open-next/assets"
 binding = "ASSETS"

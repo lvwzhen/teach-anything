@@ -53,14 +53,13 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     const reader = stream.getReader();
 
     res.setHeader("Content-Type", "text/plain; charset=utf-8");
-    res.setHeader("Transfer-Encoding", "chunked");
     res.setHeader("Cache-Control", "no-cache, no-transform");
 
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
       if (value) {
-        res.write(Buffer.from(value));
+        res.write(value);
       }
     }
 
