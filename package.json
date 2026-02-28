@@ -10,8 +10,8 @@
     "deploy:cf": "opennextjs-cloudflare deploy"
   },
   "dependencies": {
-    "@headlessui/react": "^1.7.7",
-    "@headlessui/tailwindcss": "^0.1.2",
+    "@headlessui/react": "^2.2.9",
+    "@headlessui/tailwindcss": "^0.2.2",
     "@heroicons/react": "^2.0.13",
     "@tailwindcss/forms": "^0.5.3",
     "eventsource-parser": "^0.0.5",
