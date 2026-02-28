@@ -4,8 +4,8 @@ compatibility_date = "2026-02-28"
 compatibility_flags = ["nodejs_compat"]
 
 [vars]
-OPENAI_BASE_URL = "api.openai.com"
-OPENAI_MODEL = "gpt-3.5-turbo-0125"
+OPENAI_MODEL="openrouter/free"
+OPENAI_BASE_URL="openrouter.ai/api"
 
 [assets]
 directory = ".open-next/assets"
